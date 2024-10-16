@@ -1,0 +1,179 @@
+/******************************************************************************/
+/* MODULE NAME - AXTCLA0C                                                     */
+/* OBJECT NAME - Delete / Deallocate Pick List                                */
+/* DESCRIPTION - Client maintenance interface driver                          */
+/* TEMPLATE VERSION - 01.00                                                   */
+/*                                                                            */
+/* (C) COPYRIGHT PARAGON INC. 2004                                            */
+/* LICENSED MATERIALS - PROPERTY OF PARAGON                                   */
+/* REFER TO COPYRIGHT INSTRUCTIONS FORM NUMBER G120-2083                      */
+/*                                                                            */
+/* -------------------------------------------------------------------------- */
+/* APAR activity.                                                             */
+/* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/*      START USER PROTECTED SECTION  - SECA0C 0001.000 / *USR                */
+/* VERSION 02/RELEASE 07           PTF 079000                                 */
+/* DATE mm/dd/yy                                                              */
+/* APARS/PTFS APPLIED                                                         */
+/*              XAR07 - S12345/Z                                              */
+/*      FINISH USER PROTECTED SECTION - SECA0C 0001.000                       */
+/* -------------------------------------------------------------------------- */
+/*                                                                            */
+/* EXPECTED PARAMETERS:                                                       */
+/*   &P#PFPR     Perform process?                     I       8    A          */
+/*                *YES                                                        */
+/*                *NO                                                         */
+/*   &P#SHDN     Shutdown program?                    I       8    A          */
+/*                *YES                                                        */
+/*                *NO                                                         */
+/*   &P#TSTK     Task token for processing            I      10    A          */
+/*   &P#MSID     Messages exist?                      O       7    A          */
+/*                                                                            */
+/* CALLED PROGRAMS:                                                           */
+/*                                                                            */
+/* TRANSFERRED PROGRAMS:                                                      */
+/*   NONE                                                                     */
+/*                                                                            */
+/* PROGRAM FLOW/LOGIC DESCRIPTION:                                            */
+/*                                                                            */
+/* LABELS:      ACTIVITY;                                                     */
+/*                                                                            */
+/******************************************************************************/
+             PGM        PARM(&P#PFPR &P#SHDN &P#TSTK &P#MSID)
+/*                                                                            */
+/* Copyright.                                                                 */
+/*                                                                            */
+             DCL        VAR(&COMPX) TYPE(*CHAR) LEN(115) +
+                          VALUE('XXXX-xxx (C) COPYRIGHT PARAGON, INC. +
+                           2004       ALL RIGHTS RESERVED, LICENSED +
+                          MATERIALS - PROPERTY OF PARAGON INC.')
+             DCL        VAR(&VERMOD) TYPE(*CHAR) LEN(37) +
+                          VALUE('VERSION 02/RELEASE 04/PTF 000000')
+/*                                                                            */
+/* Declare variable(s).                                                       */
+/*                                                                            */
+DCLVAR:
+             DCL        VAR(&P#PFPR)     TYPE(*CHAR) LEN(8)
+             DCL        VAR(&P#SHDN)     TYPE(*CHAR) LEN(8)
+             DCL        VAR(&P#TSTK)     TYPE(*CHAR) LEN(10)
+             DCL        VAR(&P#MSID)     TYPE(*CHAR) LEN(7)
+             DCL        VAR(&P$PFPR)     TYPE(*CHAR) LEN(8)
+             DCL        VAR(&P$SHDN)     TYPE(*CHAR) LEN(8)
+             DCL        VAR(&P$TSTK)     TYPE(*CHAR) LEN(10)
+             DCL        VAR(&P$TRST)     TYPE(*CHAR) LEN(8)
+             DCL        VAR(&P$MSID)     TYPE(*CHAR) LEN(7)
+             DCL        VAR(&P$STRQ)     TYPE(*CHAR) LEN(8)
+             DCL        VAR(&P1MSID)     TYPE(*CHAR) LEN(7)
+             DCL        VAR(&P$MSTK)     TYPE(*CHAR) LEN(10)
+             DCL        VAR(&P$MSQU)     TYPE(*CHAR) LEN(10)
+             DCL        VAR(&L#PGNM)     TYPE(*CHAR) LEN(10) +
+                                                    VALUE('AXTCLA0C')
+             DCL        VAR(&W#ABPR)     TYPE(*CHAR) LEN(8) +
+                                                    VALUE('*INITIAL')
+             DCL        VAR(&W#MSDT)     TYPE(*CHAR) LEN(256)
+             MONMSG     MSGID(MCH0000 CPF0000 AXX0000 AMU0000 +
+                          AMX0000 AMZ0000 PSV0000 PSX0000 PSZ0000 +
+                          RPG0000) EXEC(GOTO CMDLBL(HDLMSG))
+/* -------------------------------------------------------------------------- */
+/* Additional variables                                                       */
+/* -------------------------------------------------------------------------- */
+/*      START USER PROTECTED SECTION  - SECA0C 0001.500 / *USR                */
+/*      FINISH USER PROTECTED SECTION - SECA0C 0001.500                       */
+/* -------------------------------------------------------------------------- */
+/*                                                                            */
+/* Beginning of program.                                                      */
+/*                                                                            */
+BGNCLPGM:
+/* -------------------------------------------------------------------------- */
+/* Pre-processing logic                                                      */
+/* -------------------------------------------------------------------------- */
+/*      START USER PROTECTED SECTION  - SECA0C 0002.500 / *USR                */
+/*      FINISH USER PROTECTED SECTION - SECA0C 0002.500                       */
+/* -------------------------------------------------------------------------- */
+/*                                                                            */
+/* Clear message storage.                                                     */
+/*                                                                            */
+E01EMS0R:
+             CHGVAR     VAR(&P$PFPR) VALUE('*YES    ')
+             CHGVAR     VAR(&P$SHDN) VALUE('*NO     ')
+             CHGVAR     VAR(&P$STRQ) VALUE('*CLEAR  ')
+             CHGVAR     VAR(&P1MSID) VALUE('       ')
+             CALL       PGM(PSXEMS0R) PARM(&P$PFPR &P$SHDN &P$STRQ +
+                          &P1MSID &P$MSID)
+/*                                                                            */
+/* Transaction processor.                                                     */
+/*                                                                            */
+EXCA0R:
+             CHGVAR     VAR(&P$PFPR) VALUE(&P#PFPR)
+             CHGVAR     VAR(&P$SHDN) VALUE(&P#SHDN)
+             CHGVAR     VAR(&P$TSTK) VALUE(&P#TSTK)
+             CALL       PGM(AXTCLA0R) PARM(&P$PFPR &P$SHDN &P$TSTK +
+                          &P$MSID)
+/*                                                                            */
+/*     If message returned, send message to caller and return.                */
+/*                                                                            */
+               IF         COND(&P$MSID *NE '        ') THEN(DO)
+                 GOTO       CMDLBL(HDLMSG)
+               ENDDO
+/*                                                                            */
+/* Get any return message.                                                    */
+/*                                                                            */
+E02EMS0R:
+             CHGVAR     VAR(&P$PFPR) VALUE('*YES    ')
+             CHGVAR     VAR(&P$SHDN) VALUE('*NO     ')
+             CHGVAR     VAR(&P$STRQ) VALUE('*RTV    ')
+             CHGVAR     VAR(&P1MSID) VALUE('       ')
+             CALL       PGM(PSXEMS0R) PARM(&P$PFPR &P$SHDN &P$STRQ +
+                          &P1MSID &P$MSID)
+/*                                                                            */
+/*   Notify caller of any messages.                                           */
+/*                                                                            */
+             CHGVAR     VAR(&P#MSID) VALUE(&P1MSID)
+/*                                                                            */
+/* Normal end of processing.                                                  */
+/*                                                                            */
+ENDCLPGM:
+             RMVMSG     CLEAR(*ALL)
+             MONMSG     CPF0000
+             RETURN
+/*                                                                            */
+/* Message processing.                                                        */
+/*                                                                            */
+HDLMSG:
+/*                                                                            */
+/* If intial error condition.                                                 */
+/*                                                                            */
+             IF COND(&W#ABPR *EQ '*INITIAL') THEN(DO)
+/*                                                                            */
+               CHGVAR     VAR(&W#ABPR) VALUE('*EXEC   ')
+/*                                                                            */
+/* Set task status as ending abnormally.                                      */
+/*                                                                            */
+               CHGVAR     VAR(&P$PFPR) VALUE('*YES    ')
+               CHGVAR     VAR(&P$SHDN) VALUE('*YES    ')
+               CHGVAR     VAR(&P$TRST) VALUE('*TSKABN ')
+               CHGVAR     VAR(&P$TSTK) VALUE(&P#TSTK)
+               CALL       PGM(PSVUTS3R) PARM(&P$PFPR &P$SHDN &P$TRST +
+                           &P$TSTK &P$MSID)
+/*                                                                            */
+/*   Send generic abnormal message and then put all messages to the           */
+/*    task file.                                                              */
+/*                                                                            */
+               CHGVAR     VAR(&P#MSID) VALUE('PSX0010')
+               CHGVAR     VAR(&W#MSDT) VALUE(&L#PGNM)
+               CALL       PGM(PSXSPM3C) PARM('PSX0010' &W#MSDT +
+                              '*SAME' &L#PGNM)
+               CHGVAR     VAR(&P$MSQU) VALUE(&L#PGNM)
+               CHGVAR     VAR(&P$MSTK) VALUE(&P#TSTK)
+               CALL       PGM(PSXRAM1C) PARM(&P$MSQU &P$MSTK)
+/*                                                                            */
+             ENDDO
+/*                                                                            */
+             GOTO       ENDCLPGM
+/*                                                                            */
+/* Copyright.                                                                 */
+/*                                                                            */
+ COPYRGHT:   CHGVAR     VAR(&COMPX) VALUE(&COMPX)
+             CHGVAR     VAR(&VERMOD) VALUE(&VERMOD)
+             ENDPGM
